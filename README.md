@@ -1,2 +1,3 @@
-# valve-map-combiner
-A web interface that generates maps for hammer world editor from prefabs.
+# Source-Map Combiner
+
+Currently, the structure is here to generate a hard-coded map.
