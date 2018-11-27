@@ -63,10 +63,13 @@ class section
 		
 		foreach ($this->items as $item)
 		{
-			if ($item->get_key() == $key)
+			if ($item instanceof kv)
 			{
-				$out = $item->get_value();
-				break;
+				if ($item->get_key() == $key)
+				{
+					$out = $item->get_value();
+					break;
+				}
 			}
 		}
 		
@@ -75,15 +78,39 @@ class section
 	
 	public function set_field_value($key, $new_val)
 	{
-		$out = false;
+		$done = false;
 		
 		foreach ($this->items as $item)
 		{
-			if ($item->get_key() == $key)
+			if ($item instanceof kv)
 			{
-				$item->set_value($new_val);
-				$out = true;
-				break;
+				if ($item->get_key() == $key)
+				{
+					$item->set_value($new_val);
+					$done = true;
+					break;
+				}
+			}
+		}
+		
+		if (!$done)
+		{
+			$this->create_pair($key, $new_val);
+		}
+	}
+	
+	public function get_sections($name)
+	{
+		$out = array();
+		
+		foreach ($this->items as $item)
+		{
+			if ($item instanceof section)
+			{
+				if ($item->title == $name)
+				{
+					$out[] = $item;
+				}
 			}
 		}
 		
@@ -110,7 +137,7 @@ class section
 class vmf
 {
 	public static $entity_id = 1;
-	public static $solid_id = 1;
+	public static $solid_id = 0;
 	public static $side_id = 1;
 	protected $proj_name = 'untitled';
 	protected $sky_name = 'sky_day01_01';
@@ -170,13 +197,18 @@ class vmf
 		
 		foreach($this->solids as $solid)
 		{
+			
 			$world->append_section($solid);
 			self::$solid_id++;
-			
-			if (!$solid->set_field_value('id',self::$solid_id))
-				$solid->create_pair('id',self::$solid_id);
+			$solid->set_field_value('id',self::$solid_id);
 			
 			//Go through solid's sides and reset ids.
+			$items = $solid->get_sections('side');
+			foreach ($items as $side)
+			{
+				$side->set_field_value('id',self::$side_id);
+				self::$side_id++;
+			}
 		}
 		
 		$doc .= $world->export();
@@ -185,10 +217,23 @@ class vmf
 		{
 			self::$entity_id++; //This is placed first because we use it on world id.
 			
-			if (!$entity->set_field_value('id',self::$entity_id))
-				$entity->create_pair('id',self::$entity_id);
+			$entity->set_field_value('id',self::$entity_id);
 			
 			//If the entity contains solids, go through and reset ids for sides.
+			$items = $entity->get_sections('solid');
+			foreach($items as $solid)
+			{
+				self::$solid_id++;
+				$solid->set_field_value('id',self::$solid_id);
+				
+				//Go through solid's sides and reset ids.
+				$items = $solid->get_sections('side');
+				foreach ($items as $side)
+				{
+					$side->set_field_value('id',self::$side_id);
+					self::$side_id++;
+				}
+			}
 			
 			$doc .= $entity->export();
 		}
