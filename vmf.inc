@@ -197,7 +197,6 @@ class vmf
 		
 		foreach($this->solids as $solid)
 		{
-			
 			$world->append_section($solid);
 			self::$solid_id++;
 			$solid->set_field_value('id',self::$solid_id);
@@ -251,6 +250,80 @@ class vmf
 		unset($sec);
 		
 		return $doc;
+	}
+}
+
+class vmf_read
+{
+	public static function pull_key($line)
+	{
+		$out = false;
+		$line = ltrim($line);
+		$i = 0;
+		$capture = '';
+		
+		if (!empty($line) and $line[$i] == '"')
+		{
+			$i++;
+			
+			while ($i < strlen($line))
+			{
+				if ($line[$i] != '"')
+				{
+					$capture .= $line[$i];
+				}
+				else
+				{
+					$out = $capture;
+					break;
+				}
+				
+				$i++;
+			}
+		}
+		
+		return $out;
+	}
+	
+	public static function pull_value($line)
+	{
+		$out = false;
+		$line = ltrim($line);
+		$qcount = 1;
+		$i = 0;
+		$capture = '';
+		
+		if (!empty($line) and $line[$i] == '"')
+		{
+			$i++;
+			
+			while ($i < strlen($line))
+			{
+				if ($qcount > 2)
+				{
+					if ($line[$i] != '"')
+					{
+						$capture .= $line[$i];
+					}
+					else
+					{
+						$out = $capture;
+						break;
+					}
+				}
+				else
+				{
+					if ($line[$i] == '"')
+					{
+						$qcount++;
+					}
+				}
+				
+				$i++;
+			}
+		}
+		
+		return $out;
 	}
 }
 
