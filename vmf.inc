@@ -255,7 +255,7 @@ class vmf
 
 class vmf_read
 {
-	public static function pull_key($line)
+	protected static function pull_key($line)
 	{
 		$out = false;
 		$line = ltrim($line);
@@ -285,7 +285,7 @@ class vmf_read
 		return $out;
 	}
 	
-	public static function pull_value($line)
+	protected static function pull_value($line)
 	{
 		$out = false;
 		$line = ltrim($line);
@@ -324,6 +324,79 @@ class vmf_read
 		}
 		
 		return $out;
+	}
+	
+	public static function open_vmf_file($filename, $to_document)
+	{
+		$wait_for_world = true;
+		$wait_for_world_solids = true;
+		
+		$fi = fopen($filename,'r');
+		$last_line = '';
+		$nest_stack = array();
+		$nest_top = -1;
+
+		if ($fi)
+		{
+			while (($line = fgets($fi)) !== false)
+			{
+				$line = trim($line);
+				
+				if ($wait_for_world)
+				{
+					if ($line == 'world')
+						$wait_for_world = false;
+				}
+				else
+				{
+					if ($wait_for_world_solids)
+					{
+						if ($line == 'solid')
+							$wait_for_world_solids = false;
+					}
+					else
+					{
+						if ($line == '}')
+						{
+							$p = array_pop($nest_stack);
+							$nest_top--;
+							
+							if ($nest_top == -1)
+								$to_document->add_item($p);
+							elseif ($nest_top > -1)
+								$nest_stack[$nest_top]->append_section($p);
+							else
+							{
+								//We didn't collect the world opening hairpin.
+								//This is a workaround to ignore the world closing hairpin.
+								$nest_top = -1;
+							}
+						}
+						elseif ($line == '{')
+						{
+							$nest_stack[] = new section($last_line);
+							$nest_top++;
+						}
+						else
+						{
+							if (($key = vmf_read::pull_key($line)) !== false)
+							{
+								if (($val = vmf_read::pull_value($line)) !== false)
+									$nest_stack[$nest_top]->create_pair($key,$val);
+							}
+						}						
+					}
+				}
+				
+				$last_line = $line;
+			}
+			
+			fclose($fi);
+		}
+		else
+		{
+			die('Couldn\'t open file for reading!');
+		}
 	}
 }
 
