@@ -1,6 +1,12 @@
 <?php
-require("vmf.inc");
+require('vmf.inc');
 echo '<!DOCTYPE html><html><body style="font-family: courier">';
+
+/*header('Content-type: application/vmf');
+header('Content-disposition: attachment; filename="generated.vmf"');
+header('Pragma: no-cache');
+header('Cache-control: no-cache, must-revalidate');
+header('Expires: -1');*/
 
 $time_start = microtime(true);
 $document = new vmf('test_vmf');

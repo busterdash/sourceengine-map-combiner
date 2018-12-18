@@ -1,7 +1,10 @@
 # Source-Map Combiner
 
-Project in its current state can generate a valid Valve Map Format file from a genuine VMF file created with the Hammer World Editor program.
+Project in its current state can generate a valid Valve Map Format file from a handful of genuine VMF files created with the Hammer World Editor program.
 
-Testing still needs to be done to determine if this project can import multiple files and combine them into one that works in the world editor.
+At the moment none of the imported file's contents are translated to other locations, this shall be implemented soon.
 
-At this time, file output is displayed on the screen as text on a webpage; expect that to change shortly. 
+Simple testing has revealed that at this point in time:
+- The time complexity of the script is linear with each additional file imported.
+- The time complexity of the script is linear with each additional byte per file.
+- With my particular machine, a large 3MB project file takes 13 seconds to process.

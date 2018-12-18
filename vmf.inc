@@ -253,6 +253,16 @@ class vmf
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+// VMF_READ STATIC CLASS
+// Purpose: Encapsulate functions for importing entities and solids from source files.
+//
+// Methods:
+//	-prot pull_key(str) 				Pulls a key out of a key-value line in a VMF.
+//	-prot pull_value(str)				Pulls a value out of a key-value line in a VMF.
+// 	-prot translate(str)				Moves an entity or plane in space to a new location.
+//	-publ open_vmf_file(str,obj(vmf))	Import VMF file contents into our document structure.
+////////////////////////////////////////////////////////////////////////////////////////////////
 class vmf_read
 {
 	protected static function pull_key($line)
@@ -326,37 +336,50 @@ class vmf_read
 		return $out;
 	}
 	
+	/*protected static function translate($origin)
+	{
+		$len = strlen($origin);
+		
+		if ($len > 0)
+		{
+			if ($origin[0] == '(')
+			{
+				
+			}
+		}
+	}*/
+	
 	public static function open_vmf_file($filename, $to_document)
 	{
 		$wait_for_world = true;
 		$wait_for_world_solids = true;
 		
 		$fi = fopen($filename,'r');
-		$last_line = '';
-		$nest_stack = array();
-		$nest_top = -1;
-
+		$last_line = ''; //Prev line buffer, used for section headers retrieval.
+		$nest_stack = array(); //Parent objects are stored on stack until they can be closed.
+		$nest_top = -1; //Hairpin{} depth
+		
 		if ($fi)
 		{
 			while (($line = fgets($fi)) !== false)
 			{
 				$line = trim($line);
 				
-				if ($wait_for_world)
+				if ($wait_for_world) //Skip reading until we find world section.
 				{
 					if ($line == 'world')
 						$wait_for_world = false;
 				}
 				else
 				{
-					if ($wait_for_world_solids)
+					if ($wait_for_world_solids) //Skip reading until we get to world solids.
 					{
 						if ($line == 'solid')
 							$wait_for_world_solids = false;
 					}
 					else
 					{
-						if ($line == '}')
+						if ($line == '}') //We are ending a section, finalize an object.
 						{
 							$p = array_pop($nest_stack);
 							$nest_top--;
@@ -372,12 +395,12 @@ class vmf_read
 								$nest_top = -1;
 							}
 						}
-						elseif ($line == '{')
+						elseif ($line == '{') //We are beginning a new section. We go deeper.
 						{
 							$nest_stack[] = new section($last_line);
 							$nest_top++;
 						}
-						else
+						else //Not starting or ending section. Probably key-value pairs, if not then ignore.
 						{
 							if (($key = vmf_read::pull_key($line)) !== false)
 							{
