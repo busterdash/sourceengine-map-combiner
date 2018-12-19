@@ -1,5 +1,28 @@
 <?php
 
+/*==============================================================================================
+
+	vmf.inc
+	Copyright 2018 Buster Schrader
+
+	This file is part of SourceMap Combiner.
+
+    SourceMap Combiner is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    any later version.
+
+    SourceMap Combiner is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with SourceMap Combiner.  If not, see <https://www.gnu.org/licenses/>.
+	
+==============================================================================================*/
+
+//Often used to produce indentation in the output file.
 function repeat_char($char,$times)
 {
 	$out = '';
@@ -10,6 +33,16 @@ function repeat_char($char,$times)
 	return $out;
 }
 
+/*==============================================================================================
+	KV INSTANTIABLE STRUCT
+	Purpose: Encapsulates and formats data used as a key and value pair.
+	
+	Methods:
+	- publ get_key()		Return the key name.
+	- publ get_value()		Return the value.
+	- publ set_value(str)	Set the value, notice there is no set key method.
+	- publ export()			Output vmf-formatted key-value pair as a string.
+==============================================================================================*/
 class kv
 {
 	protected $pair_key;
@@ -34,6 +67,19 @@ class kv
 	}
 }
 
+/*==============================================================================================
+	SECTION INSTANTIABLE STRUCT
+	Purpose: Vehicle for data referring to an object, may also contain other objects within.
+	
+	Methods:
+	- publ append_section(obj(section))		Add to me an existing section.
+	- publ create_section(str)				Create and add to me a new section. Returns handle.
+	- publ create_pair(str,str)				Create and add to me a key-val pair. Returns handle.
+	- publ get_field_value(str)				Return value of key contained in me by key name.
+	- publ set_field_value(str,str)			Change or create key-value pair contained by me.
+	- publ get_sections(str)				Return array of contained sections by input name.
+	- publ export()							Output section and contents as a string.
+==============================================================================================*/
 class section
 {
 	public $title = "entity";
@@ -63,7 +109,7 @@ class section
 		
 		foreach ($this->items as $item)
 		{
-			if ($item instanceof kv)
+			if ($item instanceof kv) //Because we can't call get_key() on section instances.
 			{
 				if ($item->get_key() == $key)
 				{
@@ -82,7 +128,7 @@ class section
 		
 		foreach ($this->items as $item)
 		{
-			if ($item instanceof kv)
+			if ($item instanceof kv) //Because we can't call get_key() on section instances.
 			{
 				if ($item->get_key() == $key)
 				{
@@ -95,7 +141,7 @@ class section
 		
 		if (!$done)
 		{
-			$this->create_pair($key, $new_val);
+			$this->create_pair($key, $new_val); //If field doesn't exist, make it.
 		}
 	}
 	
@@ -105,9 +151,9 @@ class section
 		
 		foreach ($this->items as $item)
 		{
-			if ($item instanceof section)
+			if ($item instanceof section) //Only return sections.
 			{
-				if ($item->title == $name)
+				if ($item->title == $name) //Only return sections with name.
 				{
 					$out[] = $item;
 				}
@@ -134,6 +180,14 @@ class section
 	}
 }
 
+/*==============================================================================================
+	VMF INSTANTIABLE CLASS
+	Purpose: Contain all exportable document objects and format them for output as VMF file.
+	
+	Methods:
+	- publ add_item(obj(section)) 	Add entity or solid to vmf document via section instance.
+	- publ export()					Output entire vmf file as a string.
+==============================================================================================*/
 class vmf
 {
 	public static $entity_id = 1;
@@ -195,13 +249,14 @@ class vmf
 		$world->create_pair('detailvbsp','detail.vbsp');
 		$world->create_pair('detailmaterial','detail/detailsprites');
 		
+		//Allocate new id values to world solids and then export them.
 		foreach($this->solids as $solid)
 		{
 			$world->append_section($solid);
 			self::$solid_id++;
 			$solid->set_field_value('id',self::$solid_id);
 			
-			//Go through solid's sides and reset ids.
+			//Go through solid's sides and allocate new ids.
 			$items = $solid->get_sections('side');
 			foreach ($items as $side)
 			{
@@ -212,6 +267,7 @@ class vmf
 		
 		$doc .= $world->export();
 
+		//Allocate new id values to entities and then export them.
 		foreach($this->ents as $entity)
 		{
 			self::$entity_id++; //This is placed first because we use it on world id.
@@ -236,12 +292,12 @@ class vmf
 			
 			$doc .= $entity->export();
 		}
-
+		
 		$sec = new section('cameras');
 		$sec->create_pair('activecamera','-1');
 		$doc .= $sec->export();
 		unset($sec);
-
+		
 		$sec = new section('cordon');
 		$sec->create_pair('mins','(-1024 -1024 -1024)');
 		$sec->create_pair('maxs','(1024 1024 1024)');
@@ -253,36 +309,36 @@ class vmf
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// VMF_READ STATIC CLASS
-// Purpose: Encapsulate functions for importing entities and solids from source files.
-//
-// Methods:
-//	-prot pull_key(str) 				Pulls a key out of a key-value line in a VMF.
-//	-prot pull_value(str)				Pulls a value out of a key-value line in a VMF.
-// 	-prot translate(str)				Moves an entity or plane in space to a new location.
-//	-publ open_vmf_file(str,obj(vmf))	Import VMF file contents into our document structure.
-////////////////////////////////////////////////////////////////////////////////////////////////
+/*==============================================================================================
+	VMF_READ STATIC CLASS
+	Purpose: Encapsulate functions for importing entities and solids from source files.
+	
+	Methods:
+	- prot pull_key(str) 				Pulls a key out of a key-value line in a VMF.
+	- prot pull_value(str)				Pulls a value out of a key-value line in a VMF.
+	- prot translate(str,num,num,num)	Moves an entity or plane in space to a new location.
+	- publ open_vmf_file(str,obj(vmf))	Import VMF file contents into our document structure.
+==============================================================================================*/
 class vmf_read
 {
-	protected static function pull_key($line)
+	public static function pull_key($line)
 	{
 		$out = false;
 		$line = ltrim($line);
 		$i = 0;
 		$capture = '';
 		
-		if (!empty($line) and $line[$i] == '"')
+		if (!empty($line) and $line[$i] == '"') //Line must be a vmf key-value set.
 		{
 			$i++;
 			
-			while ($i < strlen($line))
+			while ($i < strlen($line)) //Stream through characters of line.
 			{
-				if ($line[$i] != '"')
+				if ($line[$i] != '"') //Collect chars...
 				{
 					$capture .= $line[$i];
 				}
-				else
+				else //...until we find a double quote character.
 				{
 					$out = $capture;
 					break;
@@ -295,7 +351,7 @@ class vmf_read
 		return $out;
 	}
 	
-	protected static function pull_value($line)
+	public static function pull_value($line)
 	{
 		$out = false;
 		$line = ltrim($line);
@@ -303,25 +359,27 @@ class vmf_read
 		$i = 0;
 		$capture = '';
 		
-		if (!empty($line) and $line[$i] == '"')
+		if (!empty($line) and $line[$i] == '"') //Line must be a vmf key-value set.
 		{
 			$i++;
 			
-			while ($i < strlen($line))
+			while ($i < strlen($line)) //Stream through characters of line.
 			{
-				if ($qcount > 2)
+				//We need to see three double quote chars before we capture chars
+				//so that we know we have skipped the key name information.
+				if ($qcount > 2) 
 				{
-					if ($line[$i] != '"')
+					if ($line[$i] != '"') //Collect chars...
 					{
 						$capture .= $line[$i];
 					}
-					else
+					else //...until we find a double quote character.
 					{
 						$out = $capture;
 						break;
 					}
 				}
-				else
+				else //Count quotes until we are ready to capture data.
 				{
 					if ($line[$i] == '"')
 					{
@@ -336,18 +394,80 @@ class vmf_read
 		return $out;
 	}
 	
-	/*protected static function translate($origin)
+	public static function translate($origin, $x, $y, $z)
 	{
 		$len = strlen($origin);
+		$parenthesis = false;
+		$in_vals = array();
+		$capture = '';
+		$stage = 0;
 		
-		if ($len > 0)
+		for ($i = 0; $i < $len; $i++)
 		{
-			if ($origin[0] == '(')
+			if ($origin[$i] != '(' and $origin[$i] != ')')
 			{
-				
+				if ($origin[$i] != ' ')
+					$capture .= $origin[$i];
+				else
+				{
+					$in_vals[] = intval($capture);
+					$capture = '';
+				}
+			}
+			else
+			{
+				$parenthesis = true;
 			}
 		}
-	}*/
+		
+		$in_vals[] = intval($capture);
+		$len = count($in_vals);
+		$capture = '';
+		
+		for ($i = 0; $i < $len; $i++)
+		{
+			$stage = $i % 3;
+			
+			switch($stage)
+			{
+				case 0:
+					$in_vals[$i] += $x; break;
+				case 1:
+					$in_vals[$i] += $y; break;
+				case 2:
+					$in_vals[$i] += $z; break;
+			}
+		}
+		
+		if ($parenthesis and $len > 3)
+		{
+			if ($len % 3 == 0)
+			{
+				for ($i = 0; $i < $len/3; $i++)
+				{
+					$capture .= '(';
+					$capture .= strval($in_vals[$i*3]) . ' ';
+					$capture .= strval($in_vals[$i*3+1]) . ' ';
+					$capture .= strval($in_vals[$i*3+2]) . ') ';
+				}
+			}
+			//Error handling here later.
+			
+			$capture = substr($capture, 0, -1);
+		}
+		else
+		{
+			for ($i = 0; $i < $len-1; $i++)
+				$capture .= strval($in_vals[$i]) . ' ';
+			
+			$capture .= strval($in_vals[$len-1]);
+			
+			if ($parenthesis)
+				$capture = '(' . $capture . ')';
+		}
+		
+		return $capture;
+	}
 	
 	public static function open_vmf_file($filename, $to_document)
 	{
