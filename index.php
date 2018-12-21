@@ -23,22 +23,33 @@
 ==============================================================================================*/
 
 require('vmf.inc');
-echo '<!DOCTYPE html><html><body style="font-family: courier">';
+//echo '<!DOCTYPE html><html><body style="font-family: courier">';
 
-/*header('Content-type: application/vmf');
+header('Content-type: application/vmf');
 header('Content-disposition: attachment; filename="generated.vmf"');
 header('Pragma: no-cache');
 header('Cache-control: no-cache, must-revalidate');
-header('Expires: -1');*/
+header('Expires: -1');
 
-$time_start = microtime(true);
+//$time_start = microtime(true);
 $document = new vmf('test_vmf');
-vmf_read::open_vmf_file('partial.vmf', $document);
-echo '<h2 style="color:red">Execution Time: ' . floor((microtime(true)-$time_start)*10000)/10 . 'ms</h2>';
+$document->set_skybox_tex("sky_day03_06");
+vmf_read::open_vmf_file('test/base.vmf', 0,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', -1152,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', -768,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', -384,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', 0,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', 384,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', 768,0,0, $document);
+vmf_read::open_vmf_file('test/cliff.vmf', 1152,0,0, $document);
+/*vmf_read::open_vmf_file('test/prefab3.vmf', -384,0,0, $document);
+vmf_read::open_vmf_file('test/prefab1.vmf', 0,0,0, $document);
+vmf_read::open_vmf_file('test/prefab2.vmf', 384,0,0, $document);*/
+//echo '<h2 style="color:red">Execution Time: ' . floor((microtime(true)-$time_start)*10000)/10 . 'ms</h2>';
 $fixed = $document->export();
-$fixed = str_replace("\r\n","<br />\r\n",$fixed);
-$fixed = str_replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;",$fixed);
+//$fixed = str_replace("\r\n","<br />\r\n",$fixed);
+//$fixed = str_replace("\t","&nbsp;&nbsp;&nbsp;&nbsp;",$fixed);
 echo $fixed;
-echo '</body></html>';
+//echo '</body></html>';
 
 ?>

@@ -186,6 +186,7 @@ class section
 	
 	Methods:
 	- publ add_item(obj(section)) 	Add entity or solid to vmf document via section instance.
+	- publ set_skybox_tex(str)		Set texture name of skybox.
 	- publ export()					Output entire vmf file as a string.
 ==============================================================================================*/
 class vmf
@@ -212,6 +213,11 @@ class vmf
 			elseif ($obj->title == 'entity')
 				$this->ents[] = $obj;
 		}
+	}
+	
+	public function set_skybox_tex($tex_name)
+	{
+		$this->sky_name = strtolower($tex_name);
 	}
 	
 	public function export()
@@ -317,11 +323,11 @@ class vmf
 	- prot pull_key(str) 				Pulls a key out of a key-value line in a VMF.
 	- prot pull_value(str)				Pulls a value out of a key-value line in a VMF.
 	- prot translate(str,num,num,num)	Moves an entity or plane in space to a new location.
-	- publ open_vmf_file(str,obj(vmf))	Import VMF file contents into our document structure.
+	- publ open_vmf_file(str,num,num,num,obj(vmf))	Import VMF contents into our doc. structure.
 ==============================================================================================*/
 class vmf_read
 {
-	public static function pull_key($line)
+	protected static function pull_key($line)
 	{
 		$out = false;
 		$line = ltrim($line);
@@ -351,7 +357,7 @@ class vmf_read
 		return $out;
 	}
 	
-	public static function pull_value($line)
+	protected static function pull_value($line)
 	{
 		$out = false;
 		$line = ltrim($line);
@@ -394,33 +400,37 @@ class vmf_read
 		return $out;
 	}
 	
-	public static function translate($origin, $x, $y, $z)
+	protected static function translate($origin, $x, $y, $z)
 	{
 		$len = strlen($origin);
-		$parenthesis = false;
+		$parenthesis = 0; //0 for none, 1 for '()', 2 for '[]'
 		$in_vals = array();
 		$capture = '';
 		$stage = 0;
 		
 		for ($i = 0; $i < $len; $i++)
 		{
-			if ($origin[$i] != '(' and $origin[$i] != ')')
+			if ($origin[$i] != '(' and $origin[$i] != ')'
+			and $origin[$i] != '[' and $origin[$i] != ']')
 			{
 				if ($origin[$i] != ' ')
 					$capture .= $origin[$i];
 				else
 				{
-					$in_vals[] = intval($capture);
+					$in_vals[] = floatval($capture);
 					$capture = '';
 				}
 			}
 			else
 			{
-				$parenthesis = true;
+				if ($origin[$i] == '(' or $origin[$i] == ')')
+					$parenthesis = 1;
+				else
+					$parenthesis = 2;
 			}
 		}
 		
-		$in_vals[] = intval($capture);
+		$in_vals[] = floatval($capture);
 		$len = count($in_vals);
 		$capture = '';
 		
@@ -439,7 +449,7 @@ class vmf_read
 			}
 		}
 		
-		if ($parenthesis and $len > 3)
+		if ($parenthesis == 1 and $len > 3)
 		{
 			if ($len % 3 == 0)
 			{
@@ -462,14 +472,16 @@ class vmf_read
 			
 			$capture .= strval($in_vals[$len-1]);
 			
-			if ($parenthesis)
+			if ($parenthesis == 1)
 				$capture = '(' . $capture . ')';
+			elseif ($parenthesis == 2)
+				$capture = '[' . $capture . ']';
 		}
 		
 		return $capture;
 	}
 	
-	public static function open_vmf_file($filename, $to_document)
+	public static function open_vmf_file($filename, $offset_x, $offset_y, $offset_z, $to_document)
 	{
 		$wait_for_world = true;
 		$wait_for_world_solids = true;
@@ -525,7 +537,12 @@ class vmf_read
 							if (($key = vmf_read::pull_key($line)) !== false)
 							{
 								if (($val = vmf_read::pull_value($line)) !== false)
+								{
+									if ($key == "plane" or $key == "origin" or $key == "startposition")
+										$val = vmf_read::translate($val,$offset_x,$offset_y,$offset_z);
+									
 									$nest_stack[$nest_top]->create_pair($key,$val);
+								}
 							}
 						}						
 					}
