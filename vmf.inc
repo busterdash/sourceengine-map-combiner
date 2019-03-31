@@ -180,8 +180,8 @@ class section
 	
 	public function clear()
 	{
-		unset($items);
-		$items = array();
+		unset($this->items);
+		$this->items = array();
 	}
 	
 	public function export()
