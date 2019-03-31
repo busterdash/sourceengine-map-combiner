@@ -178,6 +178,12 @@ class section
 		return $out;
 	}
 	
+	public function clear()
+	{
+		unset($items);
+		$items = array();
+	}
+	
 	public function export()
 	{
 		$out = '';
