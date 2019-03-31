@@ -103,6 +103,21 @@ class section
 		return $pair;
 	}
 	
+	public function get_all_field_values()
+	{
+		$out = array();
+		
+		foreach ($this->items as $item)
+		{
+			if ($item instanceof kv) //Because we can't call get_key() on section instances.
+			{
+				$out[] = $item;
+			}
+		}
+		
+		return $out;
+	}
+	
 	public function get_field_value($key)
 	{
 		$out = false;
