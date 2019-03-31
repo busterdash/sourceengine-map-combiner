@@ -3,7 +3,7 @@
 /*==============================================================================================
 
 	vmf.inc
-	Copyright 2018 Buster Schrader
+	Copyright 2018, 2019 Buster Schrader
 
 	This file is part of SourceMap Combiner.
 
@@ -400,6 +400,7 @@ class vmf_read
 		return $out;
 	}
 	
+	//TODO: Add support for prop_door_rotating comma-delimited axis fields.
 	protected static function translate($origin, $x, $y, $z)
 	{
 		$len = strlen($origin);

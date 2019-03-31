@@ -2,7 +2,7 @@
 
 Project in its current state can generate a valid Valve Map Format file from a handful of genuine VMF files created with the Hammer World Editor program.
 
-At the moment none of the imported file's contents are translated to other locations, this shall be implemented soon.
+Imported maps can now be placed wherever desirable in 3D space within the exported file.
 
 Simple testing has revealed that at this point in time:
 - The time complexity of the script is linear with each additional file imported.
