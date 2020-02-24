@@ -1,4 +1,4 @@
-# Source-Map Combiner
+# SourceEngine Map Combiner
 
 Project in its current state can generate a valid Valve Map Format file from a handful of genuine VMF files created with the Hammer World Editor program.
 
